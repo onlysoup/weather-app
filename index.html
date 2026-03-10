@@ -5,7 +5,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>MySiteTitle</title>
-<link rel="icon" type="image/x-icon" href="images/favicon.ico">
+<link rel="icon" type="image/x-icon" href="/images/favicon.ico">
 <link rel="apple-touch-icon" href="images/apple-touch-icon-iphone-60x60.png">
 <link rel="apple-touch-icon" sizes="60x60" href="images/apple-touch-icon-ipad-76x76.png">
 <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-iphone-retina-120x120.png">
@@ -17,28 +17,134 @@
 <body class="bg-success">
     <div class="d-flex justify-content-center align-items-center min-vh-100">
         <div id="divDisplayWeather" class=" mt-5 col-12 col-md-8 col-lg-5 align-items-center">
-            <div class="card d-flex flex-column col-12 p-5 justify-content-center align-items-center align-middle">
+            <div class="card d-flex flex-column p-5 justify-content-center align-items-center align-middle">
                 <div class="text-center card-body">
-
-                    <h2 class="text-success" id="txtLocation">Cookeville</h2>
-                    <div class="d-flex flex-row align-items-center justify-content-center">
-                        <h1 id="txtTemp" class="text-success" id="txtTemp">0</h1>
-                        <i id="iconTemp" style="font-size: 2rem;" class="bi bi-thermometer text-success"></i>
-                        <h1 id="txtHumidity" class="text-success">100</h1>
-                        <i id="iconHumidity" style="font-size: 2rem;" class="bi bi-moisture text-success"></i>
+                    <div class="d-flex flex-row align-items-center justify-content-between gap-5">
+                        <div class="text-center">
+                            <h2 class="text-success" id="txtLocation">Cookeville</h2>
+                            <hr>
+                            <div class="d-flex flex-row align-items-center justify-content-center gap-1">
+                                <h1 id="txtTemp" class="text-success" id="txtTemp"></h1>
+                                <i id="iconTemp" style="font-size: 30px;" class=""></i>
+                                <h1 id="txtHumidity" class="text-success"></h1>
+                                <i id="iconHumidity" style="font-size: 30px;" class="bi bi-moisture text-success"></i>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <i id="iconConditions" style="font-size: 80px;" class="" alt=""></i>
+                            <div class="d-flex flex-row align-items-center justify-content-center gap-1">
+                                <i style="font-size: 30px;" class="bi bi-wind text-success" alt="wind speed"></i>
+                                <h1 id="txtWind" class="text-success"></h1>
+                            </div>
+                        </div>
                     </div>
+                    
+
                 </div>
 
             </div>
 
         </div>
     </div>
+    <script>
+        function error_call() {
+            Swal.fire({
+                        title: "Error",
+                        html: "<p>Weather info could not be fetched. Please try again later.</p>",
+                        icon: "error"
+                    });
+                    return;
+        }
+        async function api_call() {
+            const url = "https://api.open-meteo.com/v1/forecast";
+            const arguments = "?latitude=36.1682&longitude=-85.5016&current=temperature_2m,relative_humidity_2m,is_day,rain,snowfall,cloud_cover,wind_speed_10m,wind_direction_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch";
+            const objResponse = await fetch(`${url}${arguments}`);
+            if (!objResponse.ok) {
+                console.error("API call failed");
+                error_call();
+                return;
+            }
+            const objWeather = await objResponse.json();
+            // get all the necessary data
+            const fltRain = objWeather["current"]["rain"];
+            const fltSnowfall = objWeather["current"]["snowfall"];
+            const blnIsDay = objWeather["current"]["is_day"];
+            const intCloudCover = objWeather["current"]["cloud_cover"];
+            const fltTemperature = objWeather["current"]["temperature_2m"];
+
+            
+            //handle conditions
+            let strConditions = "bi text-success";
+            let strAltText = "";
+            if (fltSnowfall > 0) {
+                strConditions += " bi-cloud-snow";
+                strAltText = "It is snowing";
+            }
+            else if (fltRain > .30) {
+                strConditions += " bi-cloud-rain-heavy";
+                strAltText = "It is raining heavily";
+            }
+            else if (fltRain > .10) {
+                strConditions += " bi-cloud-rain";
+                strAltText = "It is raining";
+            }
+            else if (fltRain > 0) {
+                strConditions += " bi-cloud-drizzle";
+                strAltText = "It is drizzling";
+            }
+            else if (blnIsDay == 1) {
+                
+                if (intCloudCover > 75) {
+                    strConditions += " bi-clouds";
+                    strAltText = "It is cloudy";
+                }
+                else if (intCloudCover > 50) {
+                    strConditions += " bi-cloud-sun";
+                    strAltText = "It is partly cloudy";
+                }
+                else {
+                    strConditions += " bi-sun";
+                    strAltText = "It is sunny";
+                }
+            }
+            else {
+                if (intCloudCover > 75) {
+                    strConditions += " bi-clouds";
+                    strAltText = "It is cloudy";
+                }
+                else if (intCloudCover > 50) {
+                    strConditions += " bi-cloud-moon";
+                    strAltText = "It is partly cloudy";
+                }
+                else {
+                    strConditions += " bi-moon-stars";
+                    strAltText = "It is night";
+                }
+            }
+            document.querySelector('#iconConditions').className = strConditions;
+            document.querySelector('#iconConditions').alt = strAltText;
+            //handle wind speed
+            document.querySelector('#txtWind').innerHTML = `${Number(objWeather["current"]["wind_speed_10m"]).toFixed(0)} mph`;
+            //handle humidity
+            document.querySelector('#txtHumidity').innerHTML = `${objWeather["current"]["relative_humidity_2m"]}%`;
+            //handle temp
+            strIconTemp = "bi text-success";
+            if (fltTemperature > 100) {
+                strIconTemp += " bi-thermometer-high";
+            }
+            else if (fltTemperature > 67) {
+                strIconTemp += " bi-thermometer-half";
+            }
+            else if (fltTemperature > 33) {
+                strIconTemp += " bi-thermometer-low";
+            }
+            else {
+                strIconTemp += " bi-thermometer";
+            }
+            document.querySelector('#iconTemp').className = strIconTemp;
+            document.querySelector('#txtTemp').innerHTML = `${fltTemperature} &deg`;
+        }
+        api_call();
+        
+    </script>
 </body>
-
-
-https://api.open-meteo.com/v1/forecast?latitude=36.1682&longitude=-
-85.5016&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitat
-ion&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,rain&daily=te
-mperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_un
-it=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FChi
-cago
